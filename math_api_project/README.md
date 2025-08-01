@@ -1,4 +1,4 @@
-# Math Microservice API
+# Math API project
 
 This project is a complete microservice solution for executing and displaying mathematical operations, both via API and a modern Web UI.
 
