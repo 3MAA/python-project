@@ -1,4 +1,4 @@
-# Math CLI – Python project with asynchronous worker and caching
+# Math CLI project 
 
 This project provides a CLI interface for basic mathematical operations (`pow`, `fibonacci`, `factorial`) with result persistence in SQLite and a real asynchronous worker that processes tasks from a persistent queue (`task_queue`). It also includes **caching logic**: if a task was already processed in the past, its result is returned directly from the database without recalculating it.
 
