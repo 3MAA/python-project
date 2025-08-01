@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math API project</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+      max-width: 700px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      background: #fff;
+      padding: 1rem;
+      margin: 1rem 0;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    label {
+      flex: 1;
+    }
+    input[type='number'] {
+      width: 80px;
+      padding: 0.3rem;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background: #0077cc;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #e0ffe0;
+      border-left: 5px solid #5cb85c;
+      font-size: 1.1rem;
+    }
+    .error {
+      background: #ffe0e0;
+      border-left: 5px solid #d9534f;
+      color: #a94442;
+    }
+    .history {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+    ul {
+      list-style-type: none;
+      padding-left: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Math operations</h1>
+
+  <form id="powForm">
+    <label>Base: <input type="number" id="base"></label>
+    <label>Exponent: <input type="number" id="exp"></label>
+    <button type="submit">Power</button>
+  </form>
+
+  <form id="fibForm">
+    <label>n: <input type="number" id="fibN"></label>
+    <button type="submit">Fibonacci</button>
+  </form>
+
+  <form id="factForm">
+    <label>n: <input type="number" id="factN"></label>
+    <button type="submit">Factorial</button>
+  </form>
+
+  <div class="result" id="resultBox">No result yet.</div>
+
+  <div class="history">
+    <h2>🕘 History</h2>
+    <button onclick="loadHistory()">Load history</button>
+    <ul id="historyList"></ul>
+  </div>
+
+  <script>
+    const resultBox = document.getElementById("resultBox");
+
+    async function handleError(res) {
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Unexpected error");
+      }
+      return res.json();
+    }
+
+    function startPolling(taskId) {
+      resultBox.innerText = `⏳ Task #${taskId} submitted. Waiting for result...`;
+      const interval = setInterval(async () => {
+        const res = await fetch(`/api/result/${taskId}`);
+        const data = await res.json();
+        if (data.status === "done") {
+          resultBox.className = "result";
+          resultBox.innerText = `✅ Result: ${data.result}`;
+          clearInterval(interval);
+        } else if (data.status === "error") {
+          resultBox.className = "result error";
+          resultBox.innerText = `❌ Error: ${data.result}`;
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+
+    document.getElementById("powForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const base = document.getElementById("base").value;
+      const exp = document.getElementById("exp").value;
+      try {
+        const res = await fetch("/api/pow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base: parseInt(base), exp: parseInt(exp) })
+        });
+        const data = await handleError(res);
+        startPolling(data.task_id);
+      } catch (err) {
+        resultBox.className = "result error";
+        resultBox.innerText = `❌ ${err.message}`;
+      }
+    });
+
+    document.getElementById("fibForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const n = document.getElementById("fibN").value;
+      try {
+        const res = await fetch("/api/fib", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ n: parseInt(n) })
+        });
+        const data = await handleError(res);
+        startPolling(data.task_id);
+      } catch (err) {
+        resultBox.className = "result error";
+        resultBox.innerText = `❌ ${err.message}`;
+      }
+    });
+
+    document.getElementById("factForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const n = document.getElementById("factN").value;
+      try {
+        const res = await fetch("/api/factorial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ n: parseInt(n) })
+        });
+        const data = await handleError(res);
+        startPolling(data.task_id);
+      } catch (err) {
+        resultBox.className = "result error";
+        resultBox.innerText = `❌ ${err.message}`;
+      }
+    });
+
+    async function loadHistory() {
+      const res = await fetch("/api/history");
+      const list = await res.json();
+      const historyBox = document.getElementById("historyList");
+      historyBox.innerHTML = "";
+      list.forEach(item => {
+        const li = document.createElement("li");
+        li.innerText = `${item.operation}(${item.input_data}) = ${item.result} @ ${item.timestamp}`;
+        historyBox.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
